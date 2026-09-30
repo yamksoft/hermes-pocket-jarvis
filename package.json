@@ -1,0 +1,9 @@
+{
+  "name": "hermes-pocket-jarvis",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check static/app.js",
+    "test": "node --test tests/*.mjs"
+  }
+}

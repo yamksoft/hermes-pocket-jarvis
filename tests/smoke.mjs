@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const html = readFileSync(new URL("../static/index.html", import.meta.url), "utf8");
+const js = readFileSync(new URL("../static/app.js", import.meta.url), "utf8");
+assert.match(html, /id="connect"/);
+assert.match(html, /id="camera"/);
+assert.match(js, /livekit-client/);
+assert.match(js, /sendText\(output, \{ topic: "lk\.chat" \}\)/);
+assert.match(js, /\/api\/livekit\/token/);
+assert.doesNotMatch(js, /speechSynthesis|SpeechRecognition/);
+console.log("Pocket JARVIS LiveKit UI smoke check passed.");

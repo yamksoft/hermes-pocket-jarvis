@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#06131a">
+  <title>JARVIS Pocket · Hermes</title><link rel="stylesheet" href="/static/app.css">
+</head>
+<body><main class="shell">
+  <header class="top panel"><div class="brand"><i class="reactor"></i><div><small>HERMES · LIVEKIT CLOUD CHANNEL</small><h1>J.A.R.V.I.S.</h1></div></div><div class="chips"><span id="gateway" class="chip">Hermes: فحص</span><span id="livekit" class="chip">LiveKit: فحص</span><span id="gemini" class="chip amber">Gemini Live: فحص</span></div></header>
+  <section class="workspace">
+    <aside class="panel sidebar" id="sidebar"><div class="panel-title">التحكم <button class="collapse" data-collapse="sidebar" aria-label="طي لوحة التحكم">−</button></div><div class="collapsible">
+      <p class="muted">كل جلسة غرفة LiveKit قصيرة وفريدة. مفاتيح Google وLiveKit وHermes لا تصل إلى المتصفح.</p>
+      <label>اسم العرض <input id="displayName" maxlength="48" placeholder="Yahya"></label><button id="connect" class="primary">بدء جلسة JARVIS</button><button id="disconnect" disabled>إنهاء الجلسة</button>
+      <div class="media-buttons"><button id="mic" disabled>🎙️ الميكروفون</button><button id="camera" disabled>📷 الكاميرا</button></div><hr>
+      <div class="panel-title small-title">اختصارات Hermes</div><div class="command-grid"><button data-command="/new">/new</button><button data-command="/goal">/goal</button><button data-command="/profile">/profile</button><button data-command="/background">/background</button><button data-command="/personality">/personality</button><button data-command="/kanban">/kanban</button></div><p id="armed" class="armed"></p>
+    </div></aside>
+    <section class="center"><article class="panel stage" id="stage"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="core"></div><div class="stage-label"><b id="sessionState">في الانتظار</b><small id="roomName">اضغط «بدء جلسة JARVIS»</small></div><video id="localVideo" muted autoplay playsinline aria-label="معاينة الكاميرا"></video><div id="remoteMedia"></div></article>
+      <article class="panel transcript"><div class="panel-title">المحادثة الحية <span id="modelState">غير متصل</span></div><div id="messages" class="messages" aria-live="polite"></div><form id="chatForm" class="composer"><textarea id="prompt" rows="2" placeholder="اكتب رسالة، أو شغّل الميكروفون…" required></textarea><button class="primary" type="submit">إرسال</button></form></article>
+    </section>
+    <aside class="panel telemetry" id="telemetry"><div class="panel-title">السجل <button class="collapse" data-collapse="telemetry" aria-label="طي السجل">−</button></div><div class="collapsible"><div id="log" class="log" aria-live="polite"></div></div></aside>
+  </section>
+</main><dialog id="approval"><h2>موافقة Hermes مطلوبة</h2><p id="approvalText">الوكيل يحتاج قرارك قبل المتابعة.</p><pre id="approvalData"></pre><div class="dialog-actions"><button id="approve" class="primary">السماح مرة</button><button id="deny" class="danger">رفض</button></div></dialog><script type="module" src="/static/app.js"></script></body></html>
