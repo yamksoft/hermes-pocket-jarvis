@@ -304,8 +304,10 @@ function cleanup() {
         state.room.off(RoomEvent.TrackSubscribed, attachTrack);
         state.room.off(RoomEvent.TrackUnsubscribed, detachTrack);
         state.room.off(RoomEvent.DataReceived, dataReceived);
-        state.room.off(RoomEvent.Disconnected);
-        state.room.off(RoomEvent.ConnectionStateChanged);
+        if (state.room.removeAllListeners) {
+            state.room.removeAllListeners(RoomEvent.Disconnected);
+            state.room.removeAllListeners(RoomEvent.ConnectionStateChanged);
+        }
     }
     state.room = null; state.mic = false; state.camera = false; state.cameraDevices = []; state.selectedCameraId = null;
     ui.localVideo.srcObject = null; $("remoteMedia").replaceChildren();

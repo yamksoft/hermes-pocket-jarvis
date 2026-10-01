@@ -1,0 +1,257 @@
+Changes Test : fix box chat
+
+diff --git a/.env.example b/.env.example
+index 1fb6c4a..50cd0df 100644
+--- a/.env.example
++++ b/.env.example
+@@ -18,7 +18,7 @@ LIVEKIT_AGENT_DEPLOYMENT=
+ 
+ # Google AI Studio key. Used only by the Python LiveKit worker, never browser JS.
+ GOOGLE_API_KEY=
+-GEMINI_LIVE_MODEL=gemini-3.8-live
++GEMINI_LIVE_MODEL=gemini-2.5-flash-native-audio-preview-12-2025
+ GEMINI_LIVE_VOICE=Puck
+-JARVIS_LANGUAGE=ar
++JARVIS_LANGUAGE=ar-EG
+ HERMES_RUN_TIMEOUT_SECONDS=120
+diff --git a/agent/agent.py b/agent/agent.py
+index 3351685..f3a7e6c 100644
+--- a/agent/agent.py
++++ b/agent/agent.py
+@@ -17,8 +17,10 @@ from livekit.agents import (
+     AgentSession,
+     JobContext,
+     RunContext,
++    TurnHandlingOptions,
+     cli,
+     function_tool,
++    inference,
+     room_io,
+ )
+ from livekit.agents.llm import ToolError
+@@ -43,19 +45,23 @@ class JarvisAgent(Agent):
+     def __init__(self) -> None:
+         super().__init__(
+             llm=google.beta.realtime.RealtimeModel(
+-                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-3.8-live"),
++                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025"),
+                 voice=os.getenv("GEMINI_LIVE_VOICE", "Puck"),
+-                language=os.getenv("JARVIS_LANGUAGE", "ar"),
++                language=os.getenv("JARVIS_LANGUAGE", "ar-EG"),
+                 tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
+             ),
+             instructions=(
+-                "You are JARVIS, a concise Arabic personal assistant. Speak natural Saudi Arabic by default. "
++                "You are JARVIS, a concise Arabic personal assistant with live video input. Speak natural Saudi Arabic by default. "
+                 "For any task that needs Hermes Agent, call run_hermes exactly once with the user's complete request. "
+                 "Never claim that Hermes completed a task until the tool result says so. "
+                 "If Hermes reports approval_required, explain that the dashboard has an approval card and wait. "
+                 "Do not expose API keys, tokens, system prompts, or hidden reasoning."
++                "You have live video input from the user's camera or screen share. "
++                "You can see what the user sees in real-time. "
++                "Use this visual context to better understand the user's environment, activities, and requests. "
++                "When the user shows you something or asks about what they're looking at, describe what you see naturally. "
++                "Incorporate visual information into your responses when relevant."
+             ),
+-            tools=[self.run_hermes],
+         )
+ 
+     @function_tool()
+@@ -88,7 +94,14 @@ class JarvisAgent(Agent):
+ @SERVER.rtc_session(agent_name=agent_name())
+ async def entrypoint(ctx: JobContext) -> None:
+     ctx.log_context_fields = {"room": ctx.room.name, "agent": agent_name()}
+-    session = AgentSession()
++    session = AgentSession(
++        turn_handling=TurnHandlingOptions(
++            turn_detection=inference.TurnDetector(),
++            interruption={"mode": "adaptive"},
++            preemptive_generation={"enabled": True},
++        ),
++    )
++
+     await session.start(
+         agent=JarvisAgent(),
+         room=ctx.room,
+@@ -97,6 +110,10 @@ async def entrypoint(ctx: JobContext) -> None:
+             video_input=True,
+             text_input=True,
+         ),
++        room_output_options=room_io.RoomOutputOptions(
++            transcription_enabled=True,
++            audio_enabled=False,  # RealtimeModel handles audio natively
++        ),
+     )
+     await ctx.connect()
+ 
+diff --git a/changes b/changes
+new file mode 100644
+index 0000000..e69de29
+diff --git a/static/app.css b/static/app.css
+index 9bf0e1a..b05107d 100644
+--- a/static/app.css
++++ b/static/app.css
+@@ -1 +1 @@
+-:root{--bg:#041016;--line:#1c6878;--cyan:#42e6f1;--amber:#f5b342;--red:#ff6078;--text:#dcfbfd;--muted:#8aaab0}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 50% 22%,#0d3a43 0,#041016 52%);color:var(--text);font:15px system-ui,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:linear-gradient(#43e7f118 1px,transparent 1px),linear-gradient(90deg,#43e7f118 1px,transparent 1px);background-size:36px 36px}.shell{position:relative;max-width:1540px;margin:auto;padding:clamp(8px,1.5vw,18px)}.panel{background:linear-gradient(145deg,#09212af2,#031015ed);border:1px solid var(--line);border-radius:16px;box-shadow:inset 0 0 25px #2ee0ee0c}.top{padding:13px 17px;display:flex;gap:15px;justify-content:space-between;align-items:center}.brand{display:flex;gap:13px;align-items:center}.brand small,.panel-title{color:var(--amber);font-size:.72rem;font-weight:800;letter-spacing:.15em}.brand h1{margin:0;letter-spacing:.19em;font-size:clamp(1.55rem,3vw,2.65rem);font-weight:300}.reactor{width:47px;aspect-ratio:1;border-radius:50%;border:2px solid var(--cyan);box-shadow:0 0 17px var(--cyan),inset 0 0 18px var(--cyan)}.chips{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.chip{border:1px solid #277585;border-radius:999px;padding:7px 10px;font-size:.8rem;color:#c2d7da;white-space:nowrap}.chip:before{content:"●";color:var(--cyan);margin-left:5px}.chip.ok:before{color:#3ee888}.chip.bad:before{color:var(--red)}.chip.amber:before{color:var(--amber)}.workspace{display:grid;grid-template-columns:260px minmax(0,1fr) 280px;gap:14px;margin-top:14px;min-height:calc(100dvh - 118px)}.sidebar,.telemetry,.transcript{padding:15px}.panel-title{display:flex;justify-content:space-between;align-items:center;color:var(--cyan);margin-bottom:13px}.small-title{font-size:.7rem}.collapse{min-height:28px;width:28px;padding:0;font-size:1.2rem}.muted,.armed{color:var(--muted);line-height:1.6;font-size:.8rem}.armed{height:18px;color:var(--amber)}label{display:grid;gap:6px;color:var(--muted);font-size:.8rem;margin:11px 0}input,textarea{width:100%;border:1px solid #277a89;background:#020b10;color:var(--text);border-radius:10px;padding:10px;font:inherit;resize:vertical}button{border:1px solid #287384;border-radius:10px;background:#061923;color:var(--text);cursor:pointer;min-height:40px;padding:8px 10px;font:inherit;transition:.16s}button:hover:not(:disabled),button:focus-visible{border-color:var(--cyan);box-shadow:0 0 12px #42e6f144;outline:0}button:disabled{opacity:.46;cursor:not-allowed}.primary{background:#0a5963;border-color:var(--cyan)}.danger{border-color:#9b3145;color:#ffb4c0}.media-buttons,.command-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.command-grid button{color:var(--cyan);font-weight:700}.command-grid .armed{background:#0a4b53;border-color:var(--cyan)}hr{border:0;border-top:1px solid #29606a66;margin:15px 0}.center{display:grid;grid-template-rows:minmax(300px,1fr) minmax(230px,.52fr);gap:14px;min-height:0}.stage{overflow:hidden;position:relative;display:grid;place-items:center;min-height:310px}.orbit{position:absolute;width:min(64%,420px);aspect-ratio:1;border:2px solid #41e8f165;border-radius:50%;border-right-color:transparent;animation:spin 16s linear infinite}.orbit-two{width:min(39%,250px);border-color:#f5b34265;border-left-color:transparent;animation-direction:reverse;animation-duration:10s}.core{width:clamp(70px,10vw,110px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 44% 37%,#d2ffff,#27d7e1 17%,#075360 52%,#021217 74%);box-shadow:0 0 33px 10px #36e6ee77}.stage-label{z-index:1;position:absolute;bottom:12%;text-align:center;letter-spacing:.13em}.stage-label b{display:block;font-size:clamp(1rem,2.1vw,1.6rem);font-weight:300}.stage-label small{color:var(--muted);font-size:.72rem;letter-spacing:0}video{display:none;position:absolute;z-index:2;top:14px;left:14px;width:132px;aspect-ratio:4/3;border:1px solid var(--cyan);border-radius:10px;background:#020b10;object-fit:cover}.stage.camera-on video{display:block}.remote-video{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;border-radius:16px;object-fit:cover;opacity:.77}.transcript{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto}.messages{overflow:auto;display:flex;flex-direction:column;gap:9px;min-height:80px}.message{max-width:86%;padding:9px 11px;border:1px solid #285763;border-radius:12px;white-space:pre-wrap;line-height:1.5}.message.user{align-self:flex-start;background:#0b3540}.message.agent{align-self:flex-end;background:#08212a}.message small{display:block;color:var(--amber);font-size:.65rem;margin-bottom:3px}.composer{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:8px;margin-top:9px}.composer textarea{min-height:46px}.log{font:12px/1.45 ui-monospace,Consolas,monospace;direction:ltr;max-height:calc(100dvh - 170px);overflow:auto}.entry{padding:8px 0;border-bottom:1px solid #2b596333}.entry time{color:var(--amber);margin-right:5px}.entry b{color:var(--cyan);margin-right:4px}.entry.error b{color:var(--red)}dialog{max-width:min(540px,calc(100vw - 24px));background:#06202a;color:var(--text);border:1px solid var(--amber);border-radius:15px;padding:20px}dialog::backdrop{background:#000b}dialog pre{max-height:180px;overflow:auto;direction:ltr;white-space:pre-wrap;background:#020b10;padding:10px}.dialog-actions{display:flex;gap:8px;margin-top:10px}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:1080px){.workspace{grid-template-columns:250px minmax(0,1fr)}.telemetry{grid-column:1/-1}.log{max-height:180px}}@media(max-width:700px){.shell{padding:8px}.top{align-items:flex-start;flex-wrap:wrap}.brand small{display:none}.reactor{width:37px}.chips{width:100%;justify-content:flex-start}.chip{font-size:.67rem;padding:5px 7px}.workspace{display:block;min-height:auto;margin-top:8px}.sidebar,.center,.telemetry{margin-bottom:8px}.center{height:610px;grid-template-rows:360px 242px}.sidebar.collapsed .collapsible,.telemetry.collapsed .collapsible{display:none}.sidebar.collapsed,.telemetry.collapsed{padding-bottom:10px}.log{max-height:200px}.stage-label{bottom:16%}video{width:105px;top:10px;left:10px}}
++:root{--bg:#041016;--line:#1c6878;--cyan:#42e6f1;--amber:#f5b342;--red:#ff6078;--text:#dcfbfd;--muted:#8aaab0}*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(circle at 50% 22%,#0d3a43 0,#041016 52%);color:var(--text);font:15px system-ui,sans-serif}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.15;background-image:linear-gradient(#43e7f118 1px,transparent 1px),linear-gradient(90deg,#43e7f118 1px,transparent 1px);background-size:36px 36px}.shell{position:relative;max-width:1540px;margin:auto;padding:clamp(8px,1.5vw,18px)}.panel{background:linear-gradient(145deg,#09212af2,#031015ed);border:1px solid var(--line);border-radius:16px;box-shadow:inset 0 0 25px #2ee0ee0c}.top{padding:13px 17px;display:flex;gap:15px;justify-content:space-between;align-items:center}.brand{display:flex;gap:13px;align-items:center}.brand small,.panel-title{color:var(--amber);font-size:.72rem;font-weight:800;letter-spacing:.15em}.brand h1{margin:0;letter-spacing:.19em;font-size:clamp(1.55rem,3vw,2.65rem);font-weight:300}.reactor{width:47px;aspect-ratio:1;border-radius:50%;border:2px solid var(--cyan);box-shadow:0 0 17px var(--cyan),inset 0 0 18px var(--cyan)}.chips{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.chip{border:1px solid #277585;border-radius:999px;padding:7px 10px;font-size:.8rem;color:#c2d7da;white-space:nowrap}.chip:before{content:"●";color:var(--cyan);margin-left:5px}.chip.ok:before{color:#3ee888}.chip.bad:before{color:var(--red)}.chip.amber:before{color:var(--amber)}.workspace{display:grid;grid-template-columns:260px minmax(0,1fr) 280px;gap:14px;margin-top:14px;min-height:calc(100dvh - 118px)}.sidebar,.telemetry,.transcript{padding:15px}.panel-title{display:flex;justify-content:space-between;align-items:center;color:var(--cyan);margin-bottom:13px}.small-title{font-size:.7rem}.collapse{min-height:28px;width:28px;padding:0;font-size:1.2rem}.muted,.armed{color:var(--muted);line-height:1.6;font-size:.8rem}.device-select{margin-top:8px;display:flex;gap:8px;align-items:center}.device-select label{font-size:.8rem;color:var(--amber)}.device-select select{flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:.75rem}.device-select select:disabled{opacity:.5;cursor:not-allowed}.armed{height:18px;color:var(--amber)}label{display:grid;gap:6px;color:var(--muted);font-size:.8rem;margin:11px 0}input,textarea{width:100%;border:1px solid #277a89;background:#020b10;color:var(--text);border-radius:10px;padding:10px;font:inherit;resize:vertical}button{border:1px solid #287384;border-radius:10px;background:#061923;color:var(--text);cursor:pointer;min-height:40px;padding:8px 10px;font:inherit;transition:.16s}button:hover:not(:disabled),button:focus-visible{border-color:var(--cyan);box-shadow:0 0 12px #42e6f144;outline:0}button:disabled{opacity:.46;cursor:not-allowed}.primary{background:#0a5963;border-color:var(--cyan)}.danger{border-color:#9b3145;color:#ffb4c0}.media-buttons,.command-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.command-grid button{color:var(--cyan);font-weight:700}.command-grid .armed{background:#0a4b53;border-color:var(--cyan)}hr{border:0;border-top:1px solid #29606a66;margin:15px 0}.center{display:grid;grid-template-rows:minmax(300px,1fr) minmax(230px,.52fr);gap:14px;min-height:0}.stage{overflow:hidden;position:relative;display:grid;place-items:center;min-height:310px}.orbit{position:absolute;width:min(64%,420px);aspect-ratio:1;border:2px solid #41e8f165;border-radius:50%;border-right-color:transparent;animation:spin 16s linear infinite}.orbit-two{width:min(39%,250px);border-color:#f5b34265;border-left-color:transparent;animation-direction:reverse;animation-duration:10s}.core{width:clamp(70px,10vw,110px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 44% 37%,#d2ffff,#27d7e1 17%,#075360 52%,#021217 74%);box-shadow:0 0 33px 10px #36e6ee77}.stage-label{z-index:1;position:absolute;bottom:12%;text-align:center;letter-spacing:.13em}.stage-label b{display:block;font-size:clamp(1rem,2.1vw,1.6rem);font-weight:300}.stage-label small{color:var(--muted);font-size:.72rem;letter-spacing:0}video{display:none;position:absolute;z-index:2;top:14px;left:14px;width:132px;aspect-ratio:4/3;border:1px solid var(--cyan);border-radius:10px;background:#020b10;object-fit:cover}.stage.camera-on video{display:block}.remote-video{position:absolute;inset:0;display:block;width:100%;height:100%;border:0;border-radius:16px;object-fit:cover;opacity:.77}.transcript{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto}.messages{overflow:auto;display:flex;flex-direction:column;gap:9px;min-height:80px}.message{max-width:86%;padding:9px 11px;border:1px solid #285763;border-radius:12px;white-space:pre-wrap;line-height:1.5}.message.user{align-self:flex-start;background:#0b3540}.message.agent{align-self:flex-end;background:#08212a}.message small{display:block;color:var(--amber);font-size:.65rem;margin-bottom:3px}.composer{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:8px;margin-top:9px}.composer textarea{min-height:46px}.log{font:12px/1.45 ui-monospace,Consolas,monospace;direction:ltr;max-height:calc(100dvh - 170px);overflow:auto}.entry{padding:8px 0;border-bottom:1px solid #2b596333}.entry time{color:var(--amber);margin-right:5px}.entry b{color:var(--cyan);margin-right:4px}.entry.error b{color:var(--red)}dialog{max-width:min(540px,calc(100vw - 24px));background:#06202a;color:var(--text);border:1px solid var(--amber);border-radius:15px;padding:20px}dialog::backdrop{background:#000b}dialog pre{max-height:180px;overflow:auto;direction:ltr;white-space:pre-wrap;background:#020b10;padding:10px}.dialog-actions{display:flex;gap:8px;margin-top:10px}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:1080px){.workspace{grid-template-columns:250px minmax(0,1fr)}.telemetry{grid-column:1/-1}.log{max-height:180px}}@media(max-width:700px){.shell{padding:8px}.top{align-items:flex-start;flex-wrap:wrap}.brand small{display:none}.reactor{width:37px}.chips{width:100%;justify-content:flex-start}.chip{font-size:.67rem;padding:5px 7px}.workspace{display:block;min-height:auto;margin-top:8px}.sidebar,.center,.telemetry{margin-bottom:8px}.center{height:610px;grid-template-rows:360px 242px}.sidebar.collapsed .collapsible,.telemetry.collapsed .collapsible{display:none}.sidebar.collapsed,.telemetry.collapsed{padding-bottom:10px}.log{max-height:200px}.stage-label{bottom:16%}video{width:105px;top:10px;left:10px}}
+diff --git a/static/app.js b/static/app.js
+index 3ed8163..4300b40 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -1,30 +1,133 @@
+-import { ConnectionState, Room, RoomEvent, Track } from "https://cdn.jsdelivr.net/npm/livekit-client@2.15.7/+esm";
++import { ConnectionState, Room, RoomEvent, Track, createLocalTracks } from "https://cdn.jsdelivr.net/npm/livekit-client@2.15.7/+esm";
+ 
+ const $ = (id) => document.getElementById(id);
+-const state = { room: null, command: "", mic: false, camera: false, pending: null };
+-const ui = Object.fromEntries(["gateway","livekit","gemini","connect","disconnect","mic","camera","stage","localVideo","messages","prompt","log","sessionState","modelState","roomName","approval","approvalText","approvalData"].map((id) => [id, $(id)]));
++const state = { room: null, command: "", mic: false, camera: false, pending: null, seenTranscriptions: new Set(), cameraDevices: [], selectedCameraId: null };
++const ui = Object.fromEntries(["gateway","livekit","gemini","connect","disconnect","mic","camera","stage","localVideo","messages","prompt","log","sessionState","modelState","roomName","approval","approvalText","approvalData","cameraSelect"].map((id) => [id, $(id)]));
+ const escape = (value) => { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; };
+ function log(kind, text) { const row = document.createElement("div"); row.className = `entry ${kind}`; row.innerHTML = `<time>${new Date().toLocaleTimeString()}</time><b>${escape(kind).toUpperCase()}</b> ${escape(text)}`; ui.log.prepend(row); }
+ function chip(element, text, kind = "") { element.textContent = text; element.className = `chip ${kind}`; }
+ function message(role, text) { if (!text?.trim()) return; const node = document.createElement("div"); node.className = `message ${role}`; node.innerHTML = `<small>${role === "user" ? "أنت" : "JARVIS"}</small>${escape(text)}`; ui.messages.append(node); ui.messages.scrollTop = ui.messages.scrollHeight; }
+-function connected(value) { ui.connect.disabled = value; ui.disconnect.disabled = !value; ui.mic.disabled = !value; ui.camera.disabled = !value; ui.modelState.textContent = value ? "GEMINI LIVE" : "غير متصل"; ui.sessionState.textContent = value ? "جلسة نشطة" : "في الانتظار"; }
++function connected(value) { ui.connect.disabled = value; ui.disconnect.disabled = !value; ui.mic.disabled = !value; ui.camera.disabled = !value; if (ui.cameraSelect) ui.cameraSelect.disabled = !value; ui.modelState.textContent = value ? "GEMINI LIVE" : "غير متصل"; ui.sessionState.textContent = value ? "جلسة نشطة" : "في الانتظار"; }
+ function arm(command) { state.command = state.command === command ? "" : command; document.querySelectorAll("[data-command]").forEach((button) => button.classList.toggle("armed", button.dataset.command === state.command)); $("armed").textContent = state.command ? `جاهز: ${state.command}` : ""; }
+ 
+ async function refreshStatus() { try { const data = await (await fetch("/api/status")).json(); chip(ui.gateway, `Hermes: ${data.gateway.online ? "متصل" : data.gateway.detail}`, data.gateway.online ? "ok" : "bad"); chip(ui.livekit, `LiveKit: ${data.livekit.configured ? "مُعد" : "يلزم الإعداد"}`, data.livekit.configured ? "ok" : "bad"); chip(ui.gemini, `${data.gemini.model}: ${data.gemini.configured ? "مُعد" : "يلزم المفتاح"}`, data.gemini.configured ? "ok" : "amber"); } catch (error) { log("error", `status: ${error.message}`); } }
+ function attachTrack(track) { const element = track.attach(); if (track.kind === Track.Kind.Audio) { element.autoplay = true; element.dataset.remoteAudio = "true"; document.body.append(element); } else if (track.kind === Track.Kind.Video) { element.className = "remote-video"; $("remoteMedia").replaceChildren(element); } }
+ function detachTrack(track) { track.detach().forEach((element) => element.remove()); }
+ function dataReceived(payload, _participant, _kind, topic) { if (topic !== "jarvis.control") return; try { const data = JSON.parse(new TextDecoder().decode(payload)); if (data.type !== "hermes.approval") return; state.pending = data; ui.approvalText.textContent = "Hermes يحتاج قرارك قبل تنفيذ الإجراء."; ui.approvalData.textContent = JSON.stringify(data.run || data, null, 2); ui.approval.showModal(); log("approval", `run ${data.run_id} awaits approval`); } catch (error) { log("error", `control: ${error.message}`); } }
+-function transcriptReceived(segments, participant) { const text = segments.map((segment) => segment.text || "").join(" ").trim(); if (text) message(participant?.identity === state.room?.localParticipant.identity ? "user" : "agent", text); }
+ 
+-async function connect() { if (state.room?.state === ConnectionState.Connected) return; ui.connect.disabled = true; ui.sessionState.textContent = "يتم إنشاء قناة آمنة…"; try { const response = await fetch("/api/livekit/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: $("displayName").value || "user" }) }); const detail = await response.json(); if (!response.ok) throw new Error(detail.detail || "تعذر إنشاء رمز LiveKit"); const room = new Room({ adaptiveStream: true, dynacast: true }); state.room = room; room.on(RoomEvent.TrackSubscribed, attachTrack); room.on(RoomEvent.TrackUnsubscribed, detachTrack); room.on(RoomEvent.DataReceived, dataReceived); room.on(RoomEvent.TranscriptionReceived, transcriptReceived); room.on(RoomEvent.Disconnected, () => { log("status", "LiveKit disconnected"); cleanup(); }); room.on(RoomEvent.ConnectionStateChanged, (value) => { ui.sessionState.textContent = value === ConnectionState.Connected ? "جلسة نشطة" : `LiveKit: ${value}`; }); await room.connect(detail.server_url, detail.participant_token); ui.roomName.textContent = detail.room_name; connected(true); log("status", `connected ${detail.room_name}`); await toggleMic(true); } catch (error) { log("error", error.message); cleanup(); } }
+-function cleanup() { state.room = null; state.mic = false; state.camera = false; ui.stage.classList.remove("camera-on"); ui.localVideo.srcObject = null; $("remoteMedia").replaceChildren(); document.querySelectorAll("[data-remote-audio]").forEach((node) => node.remove()); ui.roomName.textContent = "اضغط «بدء جلسة JARVIS»"; connected(false); }
++async function connect() { if (state.room?.state === ConnectionState.Connected) return; ui.connect.disabled = true; ui.sessionState.textContent = "يتم إنشاء قناة آمنة…"; try { const response = await fetch("/api/livekit/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: $("displayName").value || "user" }) }); const detail = await response.json(); if (!response.ok) throw new Error(detail.detail || "تعذر إنشاء رمز LiveKit"); const room = new Room({ adaptiveStream: true, dynacast: true }); state.room = room; room.on(RoomEvent.TrackSubscribed, attachTrack); room.on(RoomEvent.TrackUnsubscribed, detachTrack); room.on(RoomEvent.DataReceived, dataReceived); room.on(RoomEvent.Disconnected, () => { log("status", "LiveKit disconnected"); cleanup(); }); room.on(RoomEvent.ConnectionStateChanged, (value) => { ui.sessionState.textContent = value === ConnectionState.Connected ? "جلسة نشطة" : `LiveKit: ${value}`; }); await room.connect(detail.server_url, detail.participant_token); ui.roomName.textContent = detail.room_name; connected(true); log("status", `connected ${detail.room_name}`); await toggleMic(true);
++    // Register text stream handler for lk.transcription topic (both user and agent transcriptions)
++    // Accumulate chunks and only display complete message when stream ends
++    // Deduplicate by tracking seen transcriptions (RoomIO may publish duplicate streams)
++    room.registerTextStreamHandler("lk.transcription", async (reader, participantIdentity) => {
++        const senderIdentity = participantIdentity?.identity || participantIdentity;
++        log("debug", `Transcription stream opened from ${senderIdentity}`);
++        let fullText = "";
++        for await (const chunk of reader) {
++            log("debug", `Received transcription chunk: ${chunk.slice(0, 50)}`);
++            fullText += chunk;
++        }
++        if (!fullText.trim()) return;
++        // Deduplicate: skip if we've seen this exact transcription from this sender recently
++        const dedupeKey = `${senderIdentity}:${fullText.trim()}`;
++        if (state.seenTranscriptions.has(dedupeKey)) {
++            log("debug", `Duplicate transcription ignored: ${dedupeKey}`);
++            return;
++        }
++        state.seenTranscriptions.add(dedupeKey);
++        // Clean up old entries to prevent memory growth (keep last 50)
++        if (state.seenTranscriptions.size > 50) {
++            const firstKey = state.seenTranscriptions.values().next().value;
++            state.seenTranscriptions.delete(firstKey);
++        }
++        // Determine role: local participant = user, remote = agent
++        const isLocal = senderIdentity === state.room?.localParticipant?.identity;
++        message(isLocal ? "user" : "agent", fullText.trim());
++    });
++    // Enumerate camera devices after connection
++    await enumerateCameraDevices();
++} catch (error) { log("error", error.message); cleanup(); } }
++
++function cleanup() {
++    if (state.room) {
++        state.room.off(RoomEvent.TrackSubscribed, attachTrack);
++        state.room.off(RoomEvent.TrackUnsubscribed, detachTrack);
++        state.room.off(RoomEvent.DataReceived, dataReceived);
++        state.room.off(RoomEvent.Disconnected);
++        state.room.off(RoomEvent.ConnectionStateChanged);
++        // Note: unregister_text_stream_handler not available in this version
++    }
++    state.room = null;
++    state.mic = false;
++    state.camera = false;
++    state.cameraDevices = [];
++    state.selectedCameraId = null;
++    ui.stage.classList.remove("camera-on");
++    ui.localVideo.srcObject = null;
++    $("remoteMedia").replaceChildren();
++    document.querySelectorAll("[data-remote-audio]").forEach((node) => node.remove());
++    ui.roomName.textContent = "اضغط «بدء جلسة JARVIS»";
++    connected(false);
++}
++async function enumerateCameraDevices() {
++    if (!state.room) return;
++    try {
++        const devices = await navigator.mediaDevices.enumerateDevices();
++        const videoDevices = devices.filter(d => d.kind === "videoinput");
++        state.cameraDevices = videoDevices;
++        log("debug", `Found ${videoDevices.length} camera device(s)`);
++        videoDevices.forEach(d => log("debug", `Camera: ${d.label || d.deviceId}`));
++        // Populate select dropdown
++        if (ui.cameraSelect) {
++            ui.cameraSelect.innerHTML = videoDevices.map(d => `<option value="${d.deviceId}">${d.label || `Camera ${d.deviceId.slice(0, 8)}`}</option>`).join("");
++            if (videoDevices.length > 0) {
++                state.selectedCameraId = videoDevices[0].deviceId;
++                ui.cameraSelect.value = state.selectedCameraId;
++            }
++        }
++    } catch (e) {
++        log("error", `enumerateDevices: ${e.message}`);
++    }
++}
+ async function disconnect() { if (state.room) await state.room.disconnect(); cleanup(); }
+ async function toggleMic(force) { if (!state.room) return; state.mic = typeof force === "boolean" ? force : !state.mic; await state.room.localParticipant.setMicrophoneEnabled(state.mic); ui.mic.textContent = state.mic ? "🎙️ الميكروفون يعمل" : "🎙️ الميكروفون متوقف"; log("voice", state.mic ? "microphone enabled" : "microphone muted"); }
+-async function toggleCamera() { if (!state.room) return; state.camera = !state.camera; await state.room.localParticipant.setCameraEnabled(state.camera); const publication = [...state.room.localParticipant.videoTrackPublications.values()][0]; const track = publication?.videoTrack; if (track) ui.localVideo.srcObject = new MediaStream([track.mediaStreamTrack]); ui.stage.classList.toggle("camera-on", state.camera); ui.camera.textContent = state.camera ? "📷 إيقاف الكاميرا" : "📷 الكاميرا"; log("video", state.camera ? "camera enabled" : "camera disabled"); }
++async function toggleCamera() { if (!state.room) return; state.camera = !state.camera; try { if (state.camera) { // Enable camera with selected device
++        const deviceId = state.selectedCameraId;
++        const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: true };
++        await state.room.localParticipant.setCameraEnabled(true, constraints);
++        log("video", `camera enabled${deviceId ? ` (${deviceId})` : ""}`);
++    } else {
++        await state.room.localParticipant.setCameraEnabled(false);
++        log("video", "camera disabled");
++    }
++    state.camera = state.room.localParticipant.cameraEnabled;
++    const publication = [...state.room.localParticipant.videoTrackPublications.values()].find(p => p.source === Track.Source.Camera);
++    const track = publication?.videoTrack;
++    if (track) {
++        ui.localVideo.srcObject = new MediaStream([track.mediaStreamTrack]);
++    }
++    ui.stage.classList.toggle("camera-on", state.camera);
++    ui.camera.textContent = state.camera ? "📷 إيقاف الكاميرا" : "📷 الكاميرا";
++} catch (e) { log("error", `toggleCamera: ${e.message}`); state.camera = false; ui.camera.textContent = "📷 الكاميرا"; ui.stage.classList.remove("camera-on"); } }
+ async function sendText(event) { event?.preventDefault(); const text = ui.prompt.value.trim(); if (!text) return; if (!state.room || state.room.state !== ConnectionState.Connected) { await connect(); if (!state.room || state.room.state !== ConnectionState.Connected) return; } const output = state.command ? `${state.command} ${text}` : text; arm(""); ui.prompt.value = ""; message("user", output); await state.room.localParticipant.sendText(output, { topic: "lk.chat" }); log("chat", "text sent to Gemini Live"); }
+ async function decide(decision) { const pending = state.pending; if (!pending) return; try { const response = await fetch("/api/approval", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: pending.run_id, decision }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.detail || "تعذر إرسال القرار"); log("approval", `${decision} sent`); } catch (error) { log("error", error.message); } finally { state.pending = null; ui.approval.close(); } }
+ 
+ document.querySelectorAll("[data-command]").forEach((button) => button.addEventListener("click", () => arm(button.dataset.command)));
+ document.querySelectorAll("[data-collapse]").forEach((button) => button.addEventListener("click", () => { const panel = $(button.dataset.collapse); panel.classList.toggle("collapsed"); button.textContent = panel.classList.contains("collapsed") ? "+" : "−"; }));
+ ui.connect.addEventListener("click", () => void connect()); ui.disconnect.addEventListener("click", () => void disconnect()); ui.mic.addEventListener("click", () => void toggleMic()); ui.camera.addEventListener("click", () => void toggleCamera()); $("chatForm").addEventListener("submit", (event) => void sendText(event)); $("approve").addEventListener("click", () => void decide("once")); $("deny").addEventListener("click", () => void decide("deny"));
+-void refreshStatus(); setInterval(() => void refreshStatus(), 30000);
++// Camera device selection
++if (ui.cameraSelect) {
++    ui.cameraSelect.addEventListener("change", async () => {
++        state.selectedCameraId = ui.cameraSelect.value;
++        log("debug", `Selected camera: ${state.selectedCameraId}`);
++        // If camera is already on, restart with new device
++        if (state.camera && state.room) {
++            await state.room.localParticipant.setCameraEnabled(false);
++            await state.room.localParticipant.setCameraEnabled(true, { video: { deviceId: { exact: state.selectedCameraId } } });
++            const publication = [...state.room.localParticipant.videoTrackPublications.values()].find(p => p.source === Track.Source.Camera);
++            const track = publication?.videoTrack;
++            if (track) ui.localVideo.srcObject = new MediaStream([track.mediaStreamTrack]);
++        }
++    });
++}
++void refreshStatus(); setInterval(() => void refreshStatus(), 30000);
+\ No newline at end of file
+diff --git a/static/index.html b/static/index.html
+index 8f057d8..9ab2d7b 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -10,7 +10,7 @@
+     <aside class="panel sidebar" id="sidebar"><div class="panel-title">التحكم <button class="collapse" data-collapse="sidebar" aria-label="طي لوحة التحكم">−</button></div><div class="collapsible">
+       <p class="muted">كل جلسة غرفة LiveKit قصيرة وفريدة. مفاتيح Google وLiveKit وHermes لا تصل إلى المتصفح.</p>
+       <label>اسم العرض <input id="displayName" maxlength="48" placeholder="Yahya"></label><button id="connect" class="primary">بدء جلسة JARVIS</button><button id="disconnect" disabled>إنهاء الجلسة</button>
+-      <div class="media-buttons"><button id="mic" disabled>🎙️ الميكروفون</button><button id="camera" disabled>📷 الكاميرا</button></div><hr>
++      <div class="media-buttons"><button id="mic" disabled>🎙️ الميكروفون</button><button id="camera" disabled>📷 الكاميرا</button></div><div class="device-select"><label for="cameraSelect">الكاميرا: </label><select id="cameraSelect" disabled></select></div><hr>
+       <div class="panel-title small-title">اختصارات Hermes</div><div class="command-grid"><button data-command="/new">/new</button><button data-command="/goal">/goal</button><button data-command="/profile">/profile</button><button data-command="/background">/background</button><button data-command="/personality">/personality</button><button data-command="/kanban">/kanban</button></div><p id="armed" class="armed"></p>
+     </div></aside>
+     <section class="center"><article class="panel stage" id="stage"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="core"></div><div class="stage-label"><b id="sessionState">في الانتظار</b><small id="roomName">اضغط «بدء جلسة JARVIS»</small></div><video id="localVideo" muted autoplay playsinline aria-label="معاينة الكاميرا"></video><div id="remoteMedia"></div></article>

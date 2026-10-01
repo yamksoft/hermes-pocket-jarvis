@@ -1,0 +1,134 @@
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
+import path from 'path';
+import { RoomConfiguration } from '@livekit/protocol';
+
+type ConnectionDetails = {
+  serverUrl: string;
+  roomName: string;
+  participantName: string;
+  participantToken: string;
+};
+
+// Helper to dynamically load env variables based on active mode
+function getDynamicEnv() {
+  try {
+    let mode = 'local';
+    const cwd = process.cwd();
+    try {
+      mode = fs.readFileSync(path.join(cwd, '..', 'active_mode.txt'), 'utf-8').trim();
+    } catch (e) {
+      // ignore, stick to local
+    }
+    const envPath = path.join(cwd, `.env.${mode}`);
+    const content = fs.readFileSync(envPath, 'utf-8');
+    const env: Record<string, string> = {};
+    content.split('\n').forEach((line) => {
+      const match = line.match(/^([^=#]+)=(.*)$/);
+      if (match) {
+        env[match[1].trim()] = match[2].trim();
+      }
+    });
+    return env;
+  } catch (err) {
+    console.error('Could not load dynamic env, falling back to process.env', err);
+    return process.env;
+  }
+}
+
+// don't cache the results
+export const revalidate = 0;
+
+export async function POST(req: Request) {
+  const dynamicEnv = getDynamicEnv();
+  const API_KEY = dynamicEnv.LIVEKIT_API_KEY;
+  const API_SECRET = dynamicEnv.LIVEKIT_API_SECRET;
+  let LIVEKIT_URL = dynamicEnv.LIVEKIT_URL;
+  const CLIENT_URL = dynamicEnv.NEXT_PUBLIC_LIVEKIT_URL || LIVEKIT_URL;
+
+  // Auto-translate localhost to livekit-server when running inside Docker
+  if (fs.existsSync('/.dockerenv') && LIVEKIT_URL?.includes('localhost')) {
+    LIVEKIT_URL = LIVEKIT_URL.replace('localhost', 'livekit-server');
+  }
+
+  try {
+    if (!LIVEKIT_URL) throw new Error('LIVEKIT_URL is not defined');
+    if (!API_KEY) throw new Error('LIVEKIT_API_KEY is not defined');
+    if (!API_SECRET) throw new Error('LIVEKIT_API_SECRET is not defined');
+
+    // Parse room config from request body.
+    type TokenRequestBody = {
+      room_config?: Parameters<typeof RoomConfiguration.fromJson>[0];
+    };
+
+    let body: TokenRequestBody = {};
+    try {
+      body = (await req.json()) as TokenRequestBody;
+    } catch {
+      // Ignore if body is empty or invalid JSON
+    }
+    const roomConfig = body?.room_config
+      ? RoomConfiguration.fromJson(body.room_config, { ignoreUnknownFields: true })
+      : new RoomConfiguration();
+
+    // Generate participant token
+    const participantName = 'user';
+    const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
+    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
+
+    const participantToken = await createParticipantToken(
+      { identity: participantIdentity, name: participantName },
+      roomName,
+      roomConfig,
+      API_KEY,
+      API_SECRET
+    );
+
+    if (!CLIENT_URL) throw new Error('CLIENT_URL is not defined');
+
+    // Return connection details
+    const data: ConnectionDetails = {
+      serverUrl: CLIENT_URL,
+      roomName,
+      participantName,
+      participantToken,
+    };
+    const headers = new Headers({
+      'Cache-Control': 'no-store',
+    });
+    return NextResponse.json(data, { headers });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(error);
+      return new NextResponse(error.message, { status: 500 });
+    }
+  }
+}
+
+function createParticipantToken(
+  userInfo: AccessTokenOptions,
+  roomName: string,
+  roomConfig: RoomConfiguration | undefined,
+  apiKey: string,
+  apiSecret: string
+): Promise<string> {
+  const at = new AccessToken(apiKey, apiSecret, {
+    ...userInfo,
+    ttl: '15m',
+  });
+  const grant: VideoGrant = {
+    room: roomName,
+    roomJoin: true,
+    canPublish: true,
+    canPublishData: true,
+    canSubscribe: true,
+  };
+  at.addGrant(grant);
+
+  if (roomConfig) {
+    at.roomConfig = roomConfig;
+  }
+
+  return at.toJwt();
+}

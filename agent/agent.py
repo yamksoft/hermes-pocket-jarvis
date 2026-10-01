@@ -45,7 +45,7 @@ class JarvisAgent(Agent):
     def __init__(self) -> None:
         super().__init__(
             llm=google.beta.realtime.RealtimeModel(
-                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025"),
+                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-3.8-live"),
                 voice=os.getenv("GEMINI_LIVE_VOICE", "Puck"),
                 language=os.getenv("JARVIS_LANGUAGE", "ar-EG"),
                 tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
