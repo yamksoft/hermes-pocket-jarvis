@@ -10,7 +10,7 @@
     <aside class="panel sidebar" id="sidebar"><div class="panel-title">التحكم <button class="collapse" data-collapse="sidebar" aria-label="طي لوحة التحكم">−</button></div><div class="collapsible">
       <p class="muted">كل جلسة غرفة LiveKit قصيرة وفريدة. مفاتيح Google وLiveKit وHermes لا تصل إلى المتصفح.</p>
       <label>اسم العرض <input id="displayName" maxlength="48" placeholder="Yahya"></label><button id="connect" class="primary">بدء جلسة JARVIS</button><button id="disconnect" disabled>إنهاء الجلسة</button>
-      <div class="media-buttons"><button id="mic" disabled>🎙️ الميكروفون</button><button id="camera" disabled>📷 الكاميرا</button></div><hr>
+      <div class="media-buttons"><button id="mic" disabled>🎙️ الميكروفون</button><button id="camera" disabled>📷 الكاميرا</button></div><div class="device-select"><label for="cameraSelect">الكاميرا: </label><select id="cameraSelect" disabled></select></div><hr>
       <div class="panel-title small-title">اختصارات Hermes</div><div class="command-grid"><button data-command="/new">/new</button><button data-command="/goal">/goal</button><button data-command="/profile">/profile</button><button data-command="/background">/background</button><button data-command="/personality">/personality</button><button data-command="/kanban">/kanban</button></div><p id="armed" class="armed"></p>
     </div></aside>
     <section class="center"><article class="panel stage" id="stage"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="core"></div><div class="stage-label"><b id="sessionState">في الانتظار</b><small id="roomName">اضغط «بدء جلسة JARVIS»</small></div><video id="localVideo" muted autoplay playsinline aria-label="معاينة الكاميرا"></video><div id="remoteMedia"></div></article>

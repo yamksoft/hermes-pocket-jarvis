@@ -17,8 +17,10 @@ from livekit.agents import (
     AgentSession,
     JobContext,
     RunContext,
+    TurnHandlingOptions,
     cli,
     function_tool,
+    inference,
     room_io,
 )
 from livekit.agents.llm import ToolError
@@ -43,19 +45,23 @@ class JarvisAgent(Agent):
     def __init__(self) -> None:
         super().__init__(
             llm=google.beta.realtime.RealtimeModel(
-                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-3.8-live"),
+                model=os.getenv("GEMINI_LIVE_MODEL", "gemini-2.5-flash-native-audio-preview-12-2025"),
                 voice=os.getenv("GEMINI_LIVE_VOICE", "Puck"),
-                language=os.getenv("JARVIS_LANGUAGE", "ar"),
+                language=os.getenv("JARVIS_LANGUAGE", "ar-EG"),
                 tool_response_scheduling=genai_types.FunctionResponseScheduling.WHEN_IDLE,
             ),
             instructions=(
-                "You are JARVIS, a concise Arabic personal assistant. Speak natural Saudi Arabic by default. "
+                "You are JARVIS, a concise Arabic personal assistant with live video input. Speak natural Saudi Arabic by default. "
                 "For any task that needs Hermes Agent, call run_hermes exactly once with the user's complete request. "
                 "Never claim that Hermes completed a task until the tool result says so. "
                 "If Hermes reports approval_required, explain that the dashboard has an approval card and wait. "
                 "Do not expose API keys, tokens, system prompts, or hidden reasoning."
+                "You have live video input from the user's camera or screen share. "
+                "You can see what the user sees in real-time. "
+                "Use this visual context to better understand the user's environment, activities, and requests. "
+                "When the user shows you something or asks about what they're looking at, describe what you see naturally. "
+                "Incorporate visual information into your responses when relevant."
             ),
-            tools=[self.run_hermes],
         )
 
     @function_tool()
@@ -88,7 +94,14 @@ class JarvisAgent(Agent):
 @SERVER.rtc_session(agent_name=agent_name())
 async def entrypoint(ctx: JobContext) -> None:
     ctx.log_context_fields = {"room": ctx.room.name, "agent": agent_name()}
-    session = AgentSession()
+    session = AgentSession(
+        turn_handling=TurnHandlingOptions(
+            turn_detection=inference.TurnDetector(),
+            interruption={"mode": "adaptive"},
+            preemptive_generation={"enabled": True},
+        ),
+    )
+
     await session.start(
         agent=JarvisAgent(),
         room=ctx.room,
@@ -96,6 +109,10 @@ async def entrypoint(ctx: JobContext) -> None:
             audio_input=room_io.AudioInputOptions(),
             video_input=True,
             text_input=True,
+        ),
+        room_output_options=room_io.RoomOutputOptions(
+            transcription_enabled=True,
+            audio_enabled=False,  # RealtimeModel handles audio natively
         ),
     )
     await ctx.connect()
