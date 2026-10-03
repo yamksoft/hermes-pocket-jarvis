@@ -115,7 +115,7 @@ tmux new -s jarvis-agent './scripts/agent.sh'
 | `GOOGLE_API_KEY` | مفتاح Google AI Studio للعامل فقط. |
 | `GEMINI_LIVE_MODEL` | الافتراضي `gemini-3.8-live`. |
 | `HERMES_API_BASE` / `API_SERVER_KEY` | اتصال العامل والجسر إلى Hermes. |
-| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8081` افتراضياً. |
+| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8082` افتراضياً. |
 
 ## نقاط النهاية
 

@@ -47,7 +47,7 @@ index 1d52a17..10587b3 100644
 -# Keep 127.0.0.1 on phones and personal computers. Do not expose Hermes publicly.
  JARVIS_BIND_HOST=127.0.0.1
 -JARVIS_PORT=8787
-+JARVIS_PORT=8081
++JARVIS_PORT=8082
  
 -# LiveKit Cloud: create these in the LiveKit Cloud project. Keep the secret server-side.
 -LIVEKIT_URL=wss://your-project.livekit.cloud
@@ -107,7 +107,7 @@ index 1122bb3..5d26897 100644
  | `GEMINI_LIVE_MODEL` | الافتراضي `gemini-3.8-live`. |
  | `HERMES_API_BASE` / `API_SERVER_KEY` | اتصال العامل والجسر إلى Hermes. |
 -| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8787` افتراضياً. |
-+| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8081` افتراضياً. |
++| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8082` افتراضياً. |
  
  ## نقاط النهاية
  
@@ -1996,7 +1996,7 @@ index 0000000..6b6cea2
 +| الخدمة (Service) | المنفذ (Port) | الوصف |
 +| :--- | :---: | :--- |
 +| **الفرونت اند (Next.js)** | `3001` | واجهة المستخدم التفاعلية والداشبورد الخاصة بجارفس. تعمل حصرياً على هذا المنفذ. الرابط: `http://localhost:3001/dashboard` |
-+| **الباك اند (FastAPI/Python)** | `8081` | سيرفر الواجهة الخلفية المسؤول عن إصدار توكن LiveKit وإرسال الموافقات. الرابط: `http://localhost:8081` |
++| **الباك اند (FastAPI/Python)** | `8082` | سيرفر الواجهة الخلفية المسؤول عن إصدار توكن LiveKit وإرسال الموافقات. الرابط: `http://localhost:8082` |
 +| **وكيل هرمس (Hermes API)** | `8642` | واجهة الربط المباشرة مع نظام هرمس الأساسي. |
 +| **سيرفر LiveKit (المحلي)** | `7880` | في حال استخدام LiveKit محلياً (Offline mode)، سيعمل السيرفر على هذا المنفذ. |
 +
@@ -2024,7 +2024,7 @@ index 0000000..6b6cea2
 +للتشغيل المتكامل للمنظومة، يجب تشغيل 3 أجزاء في نوافذ تيرمينال منفصلة:
 +
 +### أولاً: تشغيل الباك اند (FastAPI Server)
-+يعمل على المنفذ `8081`:
++يعمل على المنفذ `8082`:
 +```bash
 +# Windows
 +.\scripts\start.ps1
@@ -2101,7 +2101,7 @@ index 0000000..c571a50
 +import { ConnectionState, Room, RoomEvent, Track, LocalParticipant } from 'livekit-client';
 +import './dashboard.css';
 +
-+const BACKEND_URL = 'http://localhost:8081';
++const BACKEND_URL = 'http://localhost:8082';
 +
 +export function DashboardClient() {
 +  const containerRef = useRef<HTMLDivElement>(null);
@@ -3000,8 +3000,8 @@ index 837e564..ced60c5 100644
  hermes, project = map(Path, sys.argv[1:]); h=read(hermes); key=h.get("API_SERVER_KEY") or secrets.token_urlsafe(48)
 -h.update({"API_SERVER_ENABLED":"true","API_SERVER_HOST":"127.0.0.1","API_SERVER_PORT":"8642","API_SERVER_CORS_ORIGINS":"http://127.0.0.1:8787,http://localhost:8787","API_SERVER_KEY":key}); write(hermes,h)
 -p=read(project); p.update({"HERMES_API_BASE":"http://127.0.0.1:8642","API_SERVER_KEY":key,"HERMES_PROFILE":p.get("HERMES_PROFILE","default"),"JARVIS_BIND_HOST":p.get("JARVIS_BIND_HOST","127.0.0.1"),"JARVIS_PORT":p.get("JARVIS_PORT","8787"),"STT_API_URL":p.get("STT_API_URL",""),"STT_API_KEY":p.get("STT_API_KEY",""),"STT_MODEL":p.get("STT_MODEL","whisper-1")}); write(project,p)
-+h.update({"API_SERVER_ENABLED":"true","API_SERVER_HOST":"127.0.0.1","API_SERVER_PORT":"8642","API_SERVER_CORS_ORIGINS":"http://localhost:3001,http://127.0.0.1:3001,http://127.0.0.1:8081","API_SERVER_KEY":key}); write(hermes,h)
-+p=read(project); p.update({"HERMES_API_BASE":"http://127.0.0.1:8642","API_SERVER_KEY":key,"HERMES_PROFILE":p.get("HERMES_PROFILE","default"),"JARVIS_BIND_HOST":p.get("JARVIS_BIND_HOST","127.0.0.1"),"JARVIS_PORT":p.get("JARVIS_PORT","8081"),"STT_API_URL":p.get("STT_API_URL",""),"STT_API_KEY":p.get("STT_API_KEY",""),"STT_MODEL":p.get("STT_MODEL","whisper-1")}); write(project,p)
++h.update({"API_SERVER_ENABLED":"true","API_SERVER_HOST":"127.0.0.1","API_SERVER_PORT":"8642","API_SERVER_CORS_ORIGINS":"http://localhost:3001,http://127.0.0.1:3001,http://127.0.0.1:8082","API_SERVER_KEY":key}); write(hermes,h)
++p=read(project); p.update({"HERMES_API_BASE":"http://127.0.0.1:8642","API_SERVER_KEY":key,"HERMES_PROFILE":p.get("HERMES_PROFILE","default"),"JARVIS_BIND_HOST":p.get("JARVIS_BIND_HOST","127.0.0.1"),"JARVIS_PORT":p.get("JARVIS_PORT","8082"),"STT_API_URL":p.get("STT_API_URL",""),"STT_API_KEY":p.get("STT_API_KEY",""),"STT_MODEL":p.get("STT_MODEL","whisper-1")}); write(project,p)
  PY
  chmod 600 "$HERMES_ENV" "$HERE/.env" 2>/dev/null || true
  echo "Hermes API registration complete. Restart the gateway: hermes gateway restart (desktop) or stop/start hermes gateway run (Termux)."
@@ -3173,7 +3173,7 @@ index a717649..87ded4c 100644
 +
  Get-Content .env | ForEach-Object { if ($_ -match '^\s*([^#=][^=]*)=(.*)$') { Set-Item -Path "Env:$($matches[1].Trim())" -Value $matches[2].Trim() } }
 -& uv run uvicorn server:app --host ($env:JARVIS_BIND_HOST ?? '127.0.0.1') --port ($env:JARVIS_PORT ?? 8787)
-+& uv run uvicorn server:app --host ($env:JARVIS_BIND_HOST ?? '127.0.0.1') --port ($env:JARVIS_PORT ?? 8081)
++& uv run uvicorn server:app --host ($env:JARVIS_BIND_HOST ?? '127.0.0.1') --port ($env:JARVIS_PORT ?? 8082)
 diff --git a/scripts/start.sh b/scripts/start.sh
 index b3cbb9c..bee2ffc 100644
 --- a/scripts/start.sh
@@ -3194,7 +3194,7 @@ index b3cbb9c..bee2ffc 100644
  HOST=${JARVIS_BIND_HOST:-$(setting JARVIS_BIND_HOST)}
  PORT=${JARVIS_PORT:-$(setting JARVIS_PORT)}
 -exec uv run uvicorn server:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8787}"
-+exec uv run uvicorn server:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8081}"
++exec uv run uvicorn server:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8082}"
 diff --git a/scripts/start_livekit.sh b/scripts/start_livekit.sh
 new file mode 100644
 index 0000000..50b2c74

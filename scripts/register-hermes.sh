@@ -16,8 +16,8 @@ def read(path):
     return values
 def write(path, values): path.write_text("\n".join(f"{k}={v}" for k,v in values.items()) + "\n", encoding="utf-8")
 hermes, project = map(Path, sys.argv[1:]); h=read(hermes); key=h.get("API_SERVER_KEY") or secrets.token_urlsafe(48)
-h.update({"API_SERVER_ENABLED":"true","API_SERVER_HOST":"127.0.0.1","API_SERVER_PORT":"8642","API_SERVER_CORS_ORIGINS":"http://localhost:3001,http://127.0.0.1:3001,http://127.0.0.1:8081","API_SERVER_KEY":key}); write(hermes,h)
-p=read(project); p.update({"HERMES_API_BASE":"http://127.0.0.1:8642","API_SERVER_KEY":key,"HERMES_PROFILE":p.get("HERMES_PROFILE","default"),"JARVIS_BIND_HOST":p.get("JARVIS_BIND_HOST","127.0.0.1"),"JARVIS_PORT":p.get("JARVIS_PORT","8081"),"STT_API_URL":p.get("STT_API_URL",""),"STT_API_KEY":p.get("STT_API_KEY",""),"STT_MODEL":p.get("STT_MODEL","whisper-1")}); write(project,p)
+h.update({"API_SERVER_ENABLED":"true","API_SERVER_HOST":"127.0.0.1","API_SERVER_PORT":"8642","API_SERVER_CORS_ORIGINS":"http://localhost:3001,http://127.0.0.1:3001,http://127.0.0.1:8082","API_SERVER_KEY":key}); write(hermes,h)
+p=read(project); p.update({"HERMES_API_BASE":"http://127.0.0.1:8642","API_SERVER_KEY":key,"HERMES_PROFILE":p.get("HERMES_PROFILE","default"),"JARVIS_BIND_HOST":p.get("JARVIS_BIND_HOST","127.0.0.1"),"JARVIS_PORT":p.get("JARVIS_PORT","8082"),"STT_API_URL":p.get("STT_API_URL",""),"STT_API_KEY":p.get("STT_API_KEY",""),"STT_MODEL":p.get("STT_MODEL","whisper-1")}); write(project,p)
 PY
 chmod 600 "$HERMES_ENV" "$HERE/.env" 2>/dev/null || true
 echo "Hermes API registration complete. Restart the gateway: hermes gateway restart (desktop) or stop/start hermes gateway run (Termux)."

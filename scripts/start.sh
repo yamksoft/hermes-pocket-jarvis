@@ -16,4 +16,4 @@ echo ""
 
 HOST=${JARVIS_BIND_HOST:-$(setting JARVIS_BIND_HOST)}
 PORT=${JARVIS_PORT:-$(setting JARVIS_PORT)}
-exec uv run uvicorn server:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8081}"
+exec uv run uvicorn server:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8082}"
