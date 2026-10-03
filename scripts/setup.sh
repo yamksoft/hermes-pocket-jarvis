@@ -29,13 +29,13 @@ uv sync --all-groups
 # Create environment configuration files for backend if they don't exist
 cat <<EOF > .env.local.template
 # Backend LiveKit Server Config (Local Mode)
-LIVEKIT_URL=http://127.0.0.1:7880
-LIVEKIT_PUBLIC_URL=http://127.0.0.1:7880
+LIVEKIT_URL=http://localhost:7880
+LIVEKIT_PUBLIC_URL=http://localhost:7880
 LIVEKIT_API_KEY=devkey
 LIVEKIT_API_SECRET=secret
 
 # Frontend LiveKit Server Config
-NEXT_PUBLIC_LIVEKIT_URL=ws://127.0.0.1:7880
+NEXT_PUBLIC_LIVEKIT_URL=ws://localhost:7880
 NEXT_PUBLIC_APP_CONFIG_ENDPOINT=/api/livekit/config
 EOF
 
