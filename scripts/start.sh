@@ -3,6 +3,7 @@ set -eu
 HERE=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$HERE"
 [ -x .venv/bin/python ] || { echo "Run ./scripts/setup.sh first." >&2; exit 1; }
+export PATH="$HOME/.local/bin:$PATH"
 # Parse only listener settings; never source .env because API keys may contain shell characters.
 setting() { sed -n "s/^$1=//p" .env 2>/dev/null | tail -n 1; }
 
