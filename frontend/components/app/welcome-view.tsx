@@ -52,6 +52,15 @@ export const WelcomeView = ({
           asChild
           className="mt-4 w-64 rounded-full border-gray-700 bg-transparent font-mono text-xs font-bold tracking-wider text-gray-400 uppercase hover:text-white"
         >
+          <Link href="/dashboard">📊 Dashboard</Link>
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          asChild
+          className="mt-4 w-64 rounded-full border-gray-700 bg-transparent font-mono text-xs font-bold tracking-wider text-gray-400 uppercase hover:text-white"
+        >
           <Link href="/setup">⚙️ Configuration</Link>
         </Button>
       </section>

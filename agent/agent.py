@@ -31,6 +31,22 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
+try:
+    with open(ROOT / "active_mode.txt", "r", encoding="utf-8") as f:
+        active_mode = f.read().strip()
+except FileNotFoundError:
+    active_mode = "local"
+
+if active_mode == "cloud":
+    load_dotenv(ROOT / ".env.cloud", override=True)
+else:
+    load_dotenv(ROOT / ".env.local", override=True)
+
+# Auto-translate localhost to livekit-server when running inside Docker
+livekit_url = os.environ.get("LIVEKIT_URL", "")
+if os.path.exists("/.dockerenv") and "localhost" in livekit_url:
+    os.environ["LIVEKIT_URL"] = livekit_url.replace("localhost", "livekit-server")
+
 from agent.hermes import HermesRunClient
 
 LOG = logging.getLogger("pocket-jarvis.agent")

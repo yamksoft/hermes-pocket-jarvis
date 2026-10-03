@@ -3,6 +3,5 @@
 __pycache__
 .pytest_cache
 tests
-static
 scripts
 README.md

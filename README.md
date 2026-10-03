@@ -72,7 +72,7 @@ hermes gateway restart
 .\scripts\agent.ps1
 ```
 
-ثم افتح `http://127.0.0.1:8787`. اختر **بدء جلسة JARVIS** ثم امنح المتصفح إذن الميكروفون أو الكاميرا عند الحاجة.
+ثم لتشغيل واجهة المستخدم الجديدة، افتح مجلد `frontend` وقم بتشغيل `npm run dev` ثم افتح `http://localhost:3001/dashboard`.
 
 ## Termux / Android
 
@@ -115,7 +115,7 @@ tmux new -s jarvis-agent './scripts/agent.sh'
 | `GOOGLE_API_KEY` | مفتاح Google AI Studio للعامل فقط. |
 | `GEMINI_LIVE_MODEL` | الافتراضي `gemini-3.8-live`. |
 | `HERMES_API_BASE` / `API_SERVER_KEY` | اتصال العامل والجسر إلى Hermes. |
-| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8787` افتراضياً. |
+| `JARVIS_BIND_HOST` / `JARVIS_PORT` | يبقى `127.0.0.1:8081` افتراضياً. |
 
 ## نقاط النهاية
 
@@ -129,10 +129,7 @@ tmux new -s jarvis-agent './scripts/agent.sh'
 ```sh
 uv run python -m py_compile server.py agent/agent.py agent/hermes.py agent/settings.py
 uv run pytest
-node --check static/app.js
-node --test tests/smoke.mjs
 ./scripts/start.sh
-curl http://127.0.0.1:8787/api/status
 ```
 
 اختبر من المتصفح بعد ضبط المفاتيح: بدء جلسة، رسالة نصية، الميكروفون، ثم الكاميرا. لا يمكن تحقق اتصال Gemini/LiveKit فعلياً من دون مفاتيحك وحساباتك.

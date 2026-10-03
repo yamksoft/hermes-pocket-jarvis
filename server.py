@@ -26,10 +26,9 @@ from livekit import api as livekit_api
 from agent.settings import livekit_public_url, new_room_name, safe_name
 
 ROOT = Path(__file__).resolve().parent
-STATIC = ROOT / "static"
 
 
-def load_env(path: Path) -> None:
+def load_env(path: Path, override: bool = False) -> None:
     """Small .env reader; avoids an additional runtime dependency."""
     if not path.exists():
         return
@@ -38,11 +37,28 @@ def load_env(path: Path) -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        if key.strip() and key.strip() not in os.environ:
-            os.environ[key.strip()] = value.strip().strip("\"").strip("'")
+        key = key.strip()
+        if key and (override or key not in os.environ):
+            os.environ[key] = value.strip().strip("\"").strip("'")
 
 
 load_env(ROOT / ".env")
+
+try:
+    with open(ROOT / "active_mode.txt", "r", encoding="utf-8") as f:
+        active_mode = f.read().strip()
+except FileNotFoundError:
+    active_mode = "local"
+
+if active_mode == "cloud":
+    load_env(ROOT / ".env.cloud", override=True)
+else:
+    load_env(ROOT / ".env.local", override=True)
+
+# Auto-translate localhost to livekit-server when running inside Docker
+livekit_url = os.environ.get("LIVEKIT_URL", "")
+if os.path.exists("/.dockerenv") and "localhost" in livekit_url:
+    os.environ["LIVEKIT_URL"] = livekit_url.replace("localhost", "livekit-server")
 
 
 def env(name: str, default: str = "") -> str:
@@ -79,7 +95,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Pocket JARVIS", docs_url=None, redoc_url=None, lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
 def http_problem(exc: httpx.HTTPStatusError, service: str = "Hermes") -> HTTPException:
@@ -102,10 +117,6 @@ async def hermes_json(method: str, path: str, **kwargs: Any) -> dict[str, Any]:
     except httpx.RequestError as exc:
         raise HTTPException(503, f"Hermes is unreachable at {hermes_base()}: {exc}") from exc
 
-
-@app.get("/", include_in_schema=False)
-async def dashboard() -> FileResponse:
-    return FileResponse(STATIC / "index.html")
 
 
 @app.get("/api/status")
