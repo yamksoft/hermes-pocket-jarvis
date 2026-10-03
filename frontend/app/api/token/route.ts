@@ -68,9 +68,17 @@ export async function POST(req: Request) {
     } catch {
       // Ignore if body is empty or invalid JSON
     }
-    const roomConfig = body?.room_config
+    let roomConfig = body?.room_config
       ? RoomConfiguration.fromJson(body.room_config, { ignoreUnknownFields: true })
       : new RoomConfiguration();
+
+    // Auto-dispatch the agent if not provided in the request body
+    const agentName = dynamicEnv.AGENT_NAME || 'hermes-jarvis';
+    if (!roomConfig.agents || roomConfig.agents.length === 0) {
+      const configJson = roomConfig.toJson();
+      configJson.agents = [{ agentName }];
+      roomConfig = RoomConfiguration.fromJson(configJson, { ignoreUnknownFields: true });
+    }
 
     // Generate participant token
     const participantName = 'user';
