@@ -55,7 +55,10 @@ Write-Host "   Frontend (frontend Folder):" -ForegroundColor White
 Write-Host "   notepad $project\frontend\.env.local" -ForegroundColor Cyan
 Write-Host "   notepad $project\frontend\.env.cloud" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "3. To start the system, open 3 separate PowerShell windows and run:" -ForegroundColor White
+Write-Host "3. Register your agent with the Hermes API by running:" -ForegroundColor White
+Write-Host "   .\scripts\register-hermes.sh" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "4. To start the system, open 3 separate PowerShell windows and run:" -ForegroundColor White
 Write-Host "   Terminal 1 (Backend) : .\scripts\start.ps1" -ForegroundColor Cyan
 Write-Host "   Terminal 2 (AI Agent): .\scripts\agent.ps1" -ForegroundColor Cyan
 Write-Host "   Terminal 3 (Frontend): cd frontend ; npm run dev" -ForegroundColor Cyan
