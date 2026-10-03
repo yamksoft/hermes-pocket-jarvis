@@ -28,7 +28,7 @@ export const getAppConfig = cache(async (headers: Headers): Promise<AppConfig> =
 
     try {
       if (!sandboxId) {
-        throw new Error('Sandbox ID is required');
+        return APP_CONFIG_DEFAULTS;
       }
 
       const response = await fetch(CONFIG_ENDPOINT, {
