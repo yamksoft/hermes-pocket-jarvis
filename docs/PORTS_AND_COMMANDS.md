@@ -19,11 +19,12 @@
 
 ## 2. أوامر الإعداد لأول مرة (Setup Commands)
 
-عند استنساخ المشروع لأول مرة أو الرغبة في إعادة تهيئة البيئة:
+عند استنساخ المشروع لأول مرة أو الرغبة في إعادة تهيئة البيئة (تأكد من الدخول لمسار المشروع أولاً):
 
 **في بيئة Linux / macOS / Termux:**
 ```bash
-./scripts/setup.sh
+# مثال للمسار إذا كنت تستخدم WSL Ubuntu
+cd ~/Projects/hermes-pocket-jarvis && ./scripts/setup.sh
 ```
 
 **في بيئة Windows (PowerShell):**
