@@ -4,7 +4,6 @@ import React from 'react';
 import { type MotionProps, motion } from 'motion/react';
 import { useVoiceAssistant } from '@livekit/components-react';
 import { AgentAudioVisualizerAura } from '@/components/agents-ui/agent-audio-visualizer-aura';
-import { AgentAudioVisualizerNexus } from '@/components/agents-ui/agent-audio-visualizer-nexus';
 import { AgentAudioVisualizerBar } from '@/components/agents-ui/agent-audio-visualizer-bar';
 import { AgentAudioVisualizerGrid } from '@/components/agents-ui/agent-audio-visualizer-grid';
 import { AgentAudioVisualizerRadial } from '@/components/agents-ui/agent-audio-visualizer-radial';
@@ -20,7 +19,7 @@ const MotionAgentAudioVisualizerWave = motion.create(AgentAudioVisualizerWave);
 interface AudioVisualizerProps extends MotionProps {
   themeMode?: 'dark' | 'light';
   isChatOpen: boolean;
-  audioVisualizerType?: 'bar' | 'wave' | 'grid' | 'radial' | 'aura' | 'nexus';
+  audioVisualizerType?: 'bar' | 'wave' | 'grid' | 'radial' | 'aura';
   audioVisualizerColor?: `#${string}`;
   audioVisualizerColorShift?: number;
   audioVisualizerWaveLineWidth?: number;
@@ -50,15 +49,6 @@ export function AudioVisualizer({
   const { state, audioTrack } = useVoiceAssistant();
 
   switch (audioVisualizerType) {
-    case 'nexus': {
-      return (
-        <AgentAudioVisualizerNexus
-          state={state}
-          className={cn('size-[300px] md:size-[450px]', className)}
-          {...props}
-        />
-      );
-    }
     case 'aura': {
       return (
         <MotionAgentAudioVisualizerAura
