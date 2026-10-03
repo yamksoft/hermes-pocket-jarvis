@@ -46,8 +46,14 @@ Write-Host "   run the following command to install it via WSL:" -ForegroundColo
 Write-Host "   wsl -e bash -l -c `"./scripts/setup_livekit.sh`"" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "2. Edit your environment variables in the following 5 files:" -ForegroundColor White
-Write-Host "   - .env, .env.local, .env.cloud (Backend)" -ForegroundColor White
-Write-Host "   - frontend\.env.local, frontend\.env.cloud (Frontend)" -ForegroundColor White
+Write-Host "   Backend (Main Folder):" -ForegroundColor White
+Write-Host "   notepad $project\.env" -ForegroundColor Cyan
+Write-Host "   notepad $project\.env.local" -ForegroundColor Cyan
+Write-Host "   notepad $project\.env.cloud" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "   Frontend (frontend Folder):" -ForegroundColor White
+Write-Host "   notepad $project\frontend\.env.local" -ForegroundColor Cyan
+Write-Host "   notepad $project\frontend\.env.cloud" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "3. To start the system, open 3 separate PowerShell windows and run:" -ForegroundColor White
 Write-Host "   Terminal 1 (Backend) : .\scripts\start.ps1" -ForegroundColor Cyan
